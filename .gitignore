@@ -1,0 +1,19 @@
+# Firmware images are copyrighted and never go into this repository - see roms/README.md
+roms/*
+!roms/README.md
+*.bin
+!src/me500emu/data/nvram/*.bin
+
+# build and cache artefacts
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+*.so
+*.snap
+*.tab
+.cache/
+.pytest_cache/
+out/

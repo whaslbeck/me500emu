@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "me500emu"
+dynamic = ["version"]
+description = "Instruction-level emulator of the Mimaki ME-500 engraving machine controller (NEC V33 firmware on Unicorn)"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { file = "LICENSE" }
+dependencies = ["unicorn==2.1.4", "capstone==5.0.9"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: C",
+    "Operating System :: POSIX :: Linux",
+    "Topic :: System :: Emulators",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=7"]
+
+[project.scripts]
+me500emu = "me500emu.cli:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "me500emu.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+me500emu = ["fastcore.c", "data/*.txt", "data/nvram/*.bin", "ui/static/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
