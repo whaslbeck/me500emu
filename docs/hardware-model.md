@@ -75,6 +75,14 @@ Port `0x06`, sensor register: bits 4-6 are the end switches, **set = actuated** 
 attachment as not fitted (bit 1 set would make the firmware refuse every Z depth command with `ERR65`). **Which bit
 belongs to which axis is not established**; the model's choice (0x20 X, 0x10 Y, 0x40 Z) is a placeholder that boots.
 
+**Measured on a real machine (2026-10-07, firmware 1.50MAX build 000021, two runs):** read in REMOTE with Z on its top
+position after homing, port `0x06` is `0x61` right after power-up and `0x69` after the first LOCAL / `<MOVE>` visit. Bit 6
+is set there in every reading, consistent with the Z origin sensor being actuated at the reference position (table Z 0).
+The model reads `0x8D` instead (bits 7, 6, 5 and 2 differ, bit 3 is not modelled). The real values have not been put into
+the model yet: the homing sequence depends on the switch geometry, and a change must keep the golden reference or be
+recorded as an intended behaviour change. On the same machine the panel jog stops by itself at 62.000 mm below the top
+(the firmware's Z limit), and the top of the jog is table Z 0.
+
 The Z axis is not a reliable witness near its end stops: the model stops dead at the end of travel and drops the rest
 of a command, while the firmware keeps believing in its target.
 
