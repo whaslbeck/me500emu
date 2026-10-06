@@ -16,6 +16,9 @@ on the machine; without it the emulator runs as fast as it can (typically 2..5x 
 --panel FILE is a control file for operator actions: the host writes one command into FILE, the bridge performs the
 key sequence and answers in FILE.ok:
     zero X Y Z     LOCAL, <MOVE>, jog to X/Y mm, XY origin key, jog Z down to Z mm, Z zero key, CE, REMOTE
+    z_to Z [zero]  LOCAL, <MOVE>, jog Z to Z mm below the top (up or down; stops early where Z no longer moves),
+                   optionally the Z zero key there, CE, REMOTE. Answers with the position reached BEFORE CE: leaving
+                   <MOVE> with CE drives Z back to the top (firmware behaviour)
     local_remote   LOCAL, then REMOTE again
     lcd            the four LCD lines
 """
@@ -58,6 +61,35 @@ def panel_command(s, words):
         s.press(1, 0)                                              # CE
         H.remote(m); s.run(2000000)
         return "ok position %s, LCD when set %s" % (s.position_mm(), lcd)
+    if words[0] == "z_to":
+        target = float(words[1])
+        z = ax["Z"]
+        s.press(1, 3); s.run(2000000)                              # LOCAL
+        s.press(2, 6)                                              # <MOVE>
+        H.drain(m, 4000000)
+        down = target > z.table_mm()
+        key = (2, 5) if down else (2, 6)                           # Z down / Z up in <MOVE>
+        still, last = 0, z.pos
+        for _ in range(900):
+            if (z.table_mm() >= target) if down else (z.table_mm() <= target):
+                break
+            m.panel.press(*key)
+            s.run(200000)
+            still = still + 1 if z.pos == last else 0
+            last = z.pos
+            if still >= 10:                                        # 1 s held without motion: the firmware stops here
+                break
+        m.panel.release_all()
+        s.run(H.KEY_GAP)
+        H.drain(m, 4000000)
+        reached = z.table_mm()
+        lcd = s.lcd()
+        if len(words) > 2 and words[2] == "zero":
+            s.press(2, 4)                                          # Z zero key
+            lcd = s.lcd()
+        s.press(1, 0)                                              # CE
+        H.remote(m); s.run(2000000)
+        return "ok Z %.3f mm below the top (before CE), LCD %s" % (reached, lcd)
     return "unknown command"
 
 

@@ -73,6 +73,7 @@ the bridge picks it up (and deletes it), performs the keys, and writes its answe
 | `lcd` | nothing | the four LCD lines, joined with ` \| ` |
 | `local_remote` | REMOTE/LOCAL key (to LOCAL), then back to REMOTE | `ok <LCD>` |
 | `zero X Y Z` | LOCAL; open `<MOVE>`; jog X+ until the head is at X mm, then Y+ until Y mm; press the XY origin key; jog Z down until Z mm; press the Z zero key; CE; back to REMOTE | `ok position (x, y, z), LCD when set <LCD>` |
+| `z_to Z [zero]` | LOCAL; open `<MOVE>`; jog Z (down with 2/5, up with 2/6) until it is Z mm below the top of the travel, or until it has not moved for 1 s of held key (the firmware stops the jog there); with `zero` press the Z zero key there; CE (which drives Z back to the top - firmware behaviour); back to REMOTE | `ok Z <mm> mm below the top (before CE), LCD <LCD>` |
 | anything else | nothing | `unknown command` |
 
 The `zero` coordinates are **table coordinates**: X/Y in mm from LOW LEFT, Z in mm below the top of the stroke. The
