@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Z sensor (port `0x06` bit 6) after homing follows a profile measured on a real machine (set 0-2.1 mm and 3.9-6.1 mm
+  below the top position, clear elsewhere); the homing run still uses the fitted dog band. Golden reference unchanged.
+- Bridge: panel command `z_to Z [zero]`.
+- Docs: port `0x06` and Z travel as measured on a real machine.
+
 ## 0.1.0 - initial public release
 
 First release as a project of its own, split out of a private reverse-engineering notebook on the Mimaki ME-500.

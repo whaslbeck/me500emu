@@ -78,10 +78,29 @@ belongs to which axis is not established**; the model's choice (0x20 X, 0x10 Y, 
 **Measured on a real machine (2026-10-07, firmware 1.50MAX build 000021, two runs):** read in REMOTE with Z on its top
 position after homing, port `0x06` is `0x61` right after power-up and `0x69` after the first LOCAL / `<MOVE>` visit. Bit 6
 is set there in every reading, consistent with the Z origin sensor being actuated at the reference position (table Z 0).
-The model reads `0x8D` instead (bits 7, 6, 5 and 2 differ, bit 3 is not modelled). The real values have not been put into
-the model yet: the homing sequence depends on the switch geometry, and a change must keep the golden reference or be
-recorded as an intended behaviour change. On the same machine the panel jog stops by itself at 62.000 mm below the top
-(the firmware's Z limit), and the top of the jog is table Z 0.
+The model reads `0x8D` as its idle value (bits 7, 5 and 2 differ from the machine, bit 3 is not modelled). On the same
+machine the panel jog stops by itself at 62.000 mm below the top (the firmware's Z limit), and the top of the jog is
+table Z 0.
+
+**Z sensor profile (measured; modelled after homing, see CHANGELOG).** A second measurement (`zprofil`: Z driven by G-code from the top
+position down 8 mm and back in 0.25 mm steps, port `0x06` read at every step; two runs with different Z0, identical
+edges, no hysteresis at that resolution) gives bit 6 against the depth below the top position:
+
+| mm below the top | bit 6 |
+|---|---|
+| 0 ... 2.00 | 1 |
+| 2.25 ... 3.75 | 0 |
+| 4.00 ... 6.00 | 1 |
+| from 6.25 | 0 |
+
+Once the machine is referenced, the model returns exactly this profile (`peer.Z_PROFILE_SET_MM`, edges halfway between
+the measured points). During the homing run it still uses the fitted 3 mm dog band, because the profile does not yet
+reconcile with the firmware's Z reference sequence: that sequence (`8000:148d` seek up until set, `153b` down until clear,
+`158d` 3 mm up, `162e` up until clear, `168e` down until set, `16ed` a fixed offset of about 1.8 mm up) replayed over
+the measured profile ends about 2 mm away from the measured rest position. Where the firmware puts table Z 0 relative to
+these moves is the open question. A second known model defect belongs to the same work: when the firmware stops a seek
+at the sensor, the model axis still runs off the steps it was owed (14 584 pulses after the first seek), so the model's
+homing positions are not physical; `rebase_to_origin` hides that afterwards.
 
 The Z axis is not a reliable witness near its end stops: the model stops dead at the end of travel and drops the rest
 of a command, while the firmware keeps believing in its target.

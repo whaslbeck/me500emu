@@ -333,6 +333,18 @@ class Axis(object):
 Z_DOG_AT = 32880
 Z_REFERENCE_TRAVEL = 87120
 
+# Port 0x06 bit 6 (Z sensor) against the Z position after homing, MEASURED on a real machine (2026-10-07, firmware
+# 1.50MAX build 000022, `me500_testlauf.py zprofil`, two runs with different Z0, 0.25 mm steps down and up, identical
+# edges, no hysteresis at that resolution): set from the top position down to 2.00 mm, clear 2.25..3.75 mm, set
+# 4.00..6.00 mm, clear from 6.25 mm down. Intervals in mm below the top position (table Z 0) where the bit is set; the
+# edges sit halfway between the measured points (+-0.125 mm). Above the top position nothing is measured (the firmware
+# never goes there); the bit is taken as set.
+# This profile applies once the machine is referenced (SubCpu.rebased). During the homing run the fitted dog band
+# below is still used: replaying the firmware's Z reference sequence (8000:148d, 153b, 158d, 162e, 168e, 16ed) over the
+# measured profile does not land on the measured rest position (about 2 mm off), so how the profile maps onto the
+# homing sequence is open, and the band is what lets the firmware's homing complete.
+Z_PROFILE_SET_MM = ((-1.0e9, 2.125), (3.875, 6.125))
+
 class SubCpu(object):
     """The second processor: handshake partner and motor driver.
 
@@ -593,9 +605,17 @@ class SubCpu(object):
             v |= 0x20
         if self.axes["Y"].at_home():
             v |= 0x10
-        if self.axes["Z"].at_home():
+        if self.z_sensor():
             v |= 0x40
         return v
+
+    def z_sensor(self):
+        """Z sensor (port 0x06 bit 6): the measured profile once referenced, the fitted dog band during homing."""
+        z = self.axes["Z"]
+        if self.rebased:
+            mm = z.table_mm()
+            return any(lo <= mm < hi for lo, hi in Z_PROFILE_SET_MM)
+        return z.at_home()
 
     def report(self):
         return {
