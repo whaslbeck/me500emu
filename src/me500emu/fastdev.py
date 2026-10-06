@@ -147,7 +147,10 @@ class SubCpuC(_peer.SubCpu):
 
 
 class CounterC(object):
-    """devices.Counter over the C struct (the core increments it on every strobe)."""
+    """devices.Counter over the C struct. The core still accumulates the strobes in `value` (kept for analysis
+    scripts); what the firmware reads on ports 0x30/0x34 comes from `source` - see devices.Counter."""
+    source = None
+
     def __init__(self, log, motion):
         self.log = log
         self._c = motion
@@ -158,9 +161,16 @@ class CounterC(object):
     def advance(self, steps):
         self._c.counter_value = (self._c.counter_value + steps) & 0xFFFF
 
+    def raw(self):
+        if self.source is None:
+            return 0
+        if self.source == "strobes":
+            return int(self._c.counter_value) & 0xFFFF
+        return int(self.source()) & 0xFFFF
+
     def port_read(self, port, pc):
         if port == 0x30:
-            self._c.counter_latched = self._c.counter_value & 0xFFFF
+            self._c.counter_latched = self.raw()
             return self._c.counter_latched & 0xFF
         if port == 0x34:
             return (self._c.counter_latched >> 8) & 0xFF

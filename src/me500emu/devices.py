@@ -311,12 +311,20 @@ class Counter(object):
     """Ports 0x30 / 0x34, read with a latch protocol:
     IN 0x30 latches, IN 0x34 gives the high byte, IN 0x30 the low byte.
 
-    This is the machine's MOTION FEEDBACK, and it must move when the machine
-    moves. The tick samples it on every iteration (8000:48a5 -> 84f6f) and
-    84f7f takes a delta against [0x1a1a]. Left at a constant zero - as it was -
-    the firmware sees no movement at all, so a seek never terminates and the
-    move never completes. MotionRegs advances it on every strobe.
+    This is the FLATNESS SENSOR's rotary encoder (service manual: ENC-A/ENC-B are the flatness encoder; the service
+    screen shows it as FLAT; NVRAM parameter 0 is its resolution). The firmware samples it on every motion tick
+    (8000:4f6f) and turns it into a height correction (8000:4f7f, 4f29) - effective only with FLATNESS ON/AUTO.
+
+    Until 2026-10-07 the model accumulated the strobes here and called it motion feedback, on the belief that seeks
+    never ended otherwise. Measured on a machine without the sensor, the counter stays 0 during a 20 mm move, and the
+    emulator boots and runs jobs identically with 0 (FLATNESS OFF). `source` decides what the firmware reads:
+      None       no flatness sensor fitted: 0 (default, as measured)
+      "strobes"  the old model: the accumulated strobes (`value`), for comparisons
+      callable   a surface model: returns the raw 16-bit encoder count
+    MotionRegs still advances `value` on every strobe.
     """
+    source = None
+
     def __init__(self, log):
         self.log = log
         self.value = 0
@@ -325,9 +333,16 @@ class Counter(object):
     def advance(self, steps):
         self.value = (self.value + steps) & 0xFFFF
 
+    def raw(self):
+        if self.source is None:
+            return 0
+        if self.source == "strobes":
+            return self.value & 0xFFFF
+        return int(self.source()) & 0xFFFF
+
     def port_read(self, port, pc):
         if port == 0x30:
-            self.latched = self.value & 0xFFFF
+            self.latched = self.raw()
             return self.latched & 0xFF
         if port == 0x34:
             return (self.latched >> 8) & 0xFF

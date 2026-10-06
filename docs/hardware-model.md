@@ -224,7 +224,10 @@ An 8251 USART on ports `0x18` (data) and `0x19` (status/command), receive on IRQ
   of about 2 mm or more get a ramp-up of 4266 ticks and a huge plateau. Harmless on the machine (measured), but in the
   emulator the record never ends.
 - **Spindle**, its on/off relay and load; **AUTO VIEW** hold (the example NVRAM has AUTO VIEW off);
-  **Z surface probe / flatness sensor** - a firmware path waiting for probe contact will not complete; **mechanics**:
+  **Z surface probe / flatness sensor** - the encoder on ports `0x30/0x34` reads 0 by default, as measured on a machine
+  without the sensor (`m.counter.source` takes `"strobes"` for the old model or a callable returning raw encoder counts
+  for a surface model); the firmware's FLATNESS ON/AUTO paths (`8000:4a06` -> `84b55`, `4f29`, `4f7f`) have not been
+  run against a surface model; a path waiting for probe contact (port `0x06` bit 7) will not complete; **mechanics**:
   inertia, backlash, cutting forces, lost motion.
 - **Gate-array behaviour** below the sub-CPU window: readiness, error signalling, timing.
 - **Absolute Z timing**: see [timing.md](timing.md).

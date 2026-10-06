@@ -13,6 +13,7 @@ into it, which also means a restored machine has whatever hooks the caller
 installs, not the ones the snapshot was taken with.
 """
 import os
+import sys
 import pickle
 import zlib
 import binascii
@@ -33,7 +34,9 @@ REGS = [("AX", UC_X86_REG_AX), ("BX", UC_X86_REG_BX), ("CX", UC_X86_REG_CX),
 # load, and the rest position after boot is the origin (peer.rebase_to_origin).
 # Older snapshots count as stale and are rebooted instead of silently loading the
 # old frame (X 22.6 mm before the end stop).
-VERSION = 3
+# 4 since 2026-10-07: the flatness encoder (ports 0x30/0x34) reads 0 unless a source is attached (no sensor fitted);
+# snapshots booted with the old strobe-accumulating counter carry state derived from it.
+VERSION = 4
 
 
 class StaleSnapshot(ValueError):
@@ -232,7 +235,7 @@ def booted(rom, cache=None, physics=True, trace="fast", boot_instr=95000000,
             m.arm_costs()                     # class costs only after the boot
             return m
         except StaleSnapshot as e:
-            print("Snapshot stale, rebooting: %s" % e)
+            sys.stderr.write("Snapshot stale, rebooting: %s\n" % e)
             m = Machine(rom, physics=physics, trace=trace, **kw)
             if on_create is not None:
                 on_create(m)

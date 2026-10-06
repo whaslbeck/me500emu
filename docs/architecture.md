@@ -79,7 +79,7 @@ the PC and the nearest Ghidra symbol (`data/symbols.txt`). Nothing answers with 
 | `0x10`, `0x11` | 8259 PIC | C core + `devices.Pic` view |
 | `0x14`, `0x15`, `0x17` | 8253 counters 0 and 1 (read back / latch) | `Machine._ctr0_live/_ctr1_live` |
 | `0x18`, `0x19` | 8251 UART data / status+command | `devices.Uart` (+ pacing in C) |
-| `0x30`, `0x34` | 16-bit position counter, latched (the service menu shows it as "FLAT") | C core |
+| `0x30`, `0x34` | flatness sensor encoder, 16-bit, latched (service menu "FLAT"); reads 0 = no sensor fitted, unless `m.counter.source` is set | Python (`Counter`/`CounterC`) |
 | `0xff00..0xff7e` | V33 page registers | `devices.PageRegisters` |
 | `0xff80` | expanded-addressing status | `PageRegisters` |
 
@@ -148,8 +148,8 @@ has not been dumped so far, so this CPU is **not emulated but simulated**: `peer
 - **Motion requests.** Three axis groups of three words each at `0x80` (X), `0x88` (Y), `0x90` (Z), and a strobe at
   `0x98`. A write of 1 to the strobe is one motion command: the sum of each group's three words is the axis delta in
   encoder pulses. The core accumulates the commanded position (`m.motion.pos`), counts strobes (`m.motion.strobes`),
-  appends the position to a path buffer, advances the position counter at ports `0x30/0x34` and hands the delta to
-  the axes.
+  appends the position to a path buffer, accumulates the deltas in `m.counter.value` (kept for analysis; the firmware
+  reads the flatness encoder through `m.counter.source`, 0 by default) and hands the delta to the axes.
 - **Axes** (`m.subcpu.axes["X"|"Y"|"Z"]`). Each axis takes the delta as owed motion (`pending`) and pays it out at
   a fixed rate (`INSTR_PER_STEP = 20` time units per pulse, i.e. up to 100 pulses per 1 ms tick, more than the
   firmware ever commands), stopping at the hard ends of its travel. The end switches on port `0x06` follow the axis
