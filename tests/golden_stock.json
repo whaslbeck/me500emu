@@ -32,7 +32,7 @@
   "y": 0.0,
   "z": 0.0
  },
- "instr": 10140564,
+ "instr": 10140633,
  "lcd": [
   "[REMOTE]     0KB",
   "SPIN-ON  COM-IIc",
@@ -40,6 +40,6 @@
   "ZC:10.00XYES:50"
  ],
  "machine_time_s": 3.87,
- "ram_sha1": "0947d0906fae96e5a67138a99d5757a607fb1ac5",
+ "ram_sha1": "b4284a1c64ee003fb87d8e5a74501f5fe5598f6f",
  "strobes": 3760
 }

@@ -327,9 +327,8 @@ class Axis(object):
         return (self.pos - self.origin_steps) / self.STEPS_PER_MM
 
 
-# Where the Z origin dog sits, in steps from the bottom of travel. Anything
-# consistent works as long as Z starts 87120 steps above it - see the Z entry
-# in SubCpu.__init__ for why that distance is fixed.
+# Historical (until 2026-10-07): the fitted Z dog band and the start distance above it. No longer used by the model -
+# the Z sensor follows the measured profile below - kept for old analysis scripts that import them.
 Z_DOG_AT = 32880
 Z_REFERENCE_TRAVEL = 87120
 
@@ -339,10 +338,12 @@ Z_REFERENCE_TRAVEL = 87120
 # 4.00..6.00 mm, clear from 6.25 mm down. Intervals in mm below the top position (table Z 0) where the bit is set; the
 # edges sit halfway between the measured points (+-0.125 mm). Above the top position nothing is measured (the firmware
 # never goes there); the bit is taken as set.
-# This profile applies once the machine is referenced (SubCpu.rebased). During the homing run the fitted dog band
-# below is still used: replaying the firmware's Z reference sequence (8000:148d, 153b, 158d, 162e, 168e, 16ed) over the
-# measured profile does not land on the measured rest position (about 2 mm off), so how the profile maps onto the
-# homing sequence is open, and the band is what lets the firmware's homing complete.
+# The profile is used throughout, also during the homing run. The firmware's Z fine reference (8000:14f2) centres on
+# the clear gap: down until clear (upper gap edge), 3 mm up, down until clear again -> [0x08a8], down until set (lower
+# gap edge), to the centre, and declares the centre table [0x06cc] = model record 3 mm * 200; table 0 (the rest
+# position) is then 3.0 mm above the gap centre - with this profile exactly the top of the model axis, where the
+# measurement was taken. Before that, the coarse reference (8000:148d) finds bit 6 already set at the rest position and
+# does nothing. (Firmware analysis: z_reference_table_zero_model.md.)
 Z_PROFILE_SET_MM = ((-1.0e9, 2.125), (3.875, 6.125))
 
 class SubCpu(object):
@@ -432,9 +433,13 @@ class SubCpu(object):
             # widths of 8000 and 12000 steps. It fails at 1200 and 4000 - too
             # narrow to catch the move - and at 24000 - too wide, the sensor
             # then never releases for the phase that waits on that.
+            # 2026-10-07: the fitted dog band (Z_DOG_AT +- 6000) is gone; the Z sensor follows the measured profile
+            # Z_PROFILE_SET_MM (SubCpu.z_sensor). The model's top end of travel is the rest position (table 0). On the
+            # machine there is some room above it - at least 0.875 mm (the reference's 3 mm hop from the upper gap
+            # edge goes that far above the rest position without ERR42), less than 2 mm (G0 Z5 with Z0 3 mm below the
+            # top gave ERR42) - which the model does not have; nothing but the homing hop goes there.
             "Z": Axis("Z", 62.0, home_at_low=True, steps_per_mm=4000,
-                      margin_steps=600,
-                      sensor_band=(Z_DOG_AT - 6000, Z_DOG_AT + 6000))}
+                      margin_steps=600)}
         # Where the axes are at power-on. A real machine is wherever it was
         # switched off, which is why it homes at all - starting every axis on
         # its home switch would be the one position that never occurs in
@@ -445,9 +450,9 @@ class SubCpu(object):
             # start_distance_mm above; the seek is bounded and cannot reach a
             # switch that is further away than it travels
             if k == "Z":
-                # Z's reference is open loop over a fixed distance, so it starts
-                # that distance above its dog rather than near a switch.
-                a.pos = min(a.travel_steps, Z_DOG_AT + Z_REFERENCE_TRAVEL)
+                # Z starts at its rest position (the top), as a machine is normally switched off and on: the
+                # reference then runs the measured path (coarse seek skipped, gap centred 3 mm below).
+                a.pos = 0
                 continue
             d = int(self.start_distance_mm * a.STEPS_PER_MM)
             a.pos = (min(a.travel_steps, d) if a.home_at_low
@@ -610,12 +615,9 @@ class SubCpu(object):
         return v
 
     def z_sensor(self):
-        """Z sensor (port 0x06 bit 6): the measured profile once referenced, the fitted dog band during homing."""
-        z = self.axes["Z"]
-        if self.rebased:
-            mm = z.table_mm()
-            return any(lo <= mm < hi for lo, hi in Z_PROFILE_SET_MM)
-        return z.at_home()
+        """Z sensor (port 0x06 bit 6) from the measured profile: depth below the top position in mm."""
+        mm = self.axes["Z"].table_mm()
+        return any(lo <= mm < hi for lo, hi in Z_PROFILE_SET_MM)
 
     def report(self):
         return {

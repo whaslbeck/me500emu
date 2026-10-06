@@ -26,7 +26,7 @@ status - without the machine, without a workpiece, and many times faster than re
   - NVRAM (512 cells) with write protection, seeded from files that hold real machine settings
   - the V33 page registers and the 1 MiB paged store behind the four memory windows
   - the **sub-CPU window and an axis model**: X/Y/Z positions in encoder pulses, travel limits, end switches,
-    the Z origin dog
+    and the Z sensor profile measured on a real machine (the firmware's Z reference runs on it)
 - **Headless job runner** (`me500emu run`): JSON report with machine time, bounds, final position, firmware status
   and LCD; optional CSV trace of the travelled path.
 - **pty bridge** (`me500emu bridge`): the machine appears as a serial device (`/dev/pts/N`), so an unmodified

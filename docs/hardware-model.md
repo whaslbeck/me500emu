@@ -65,8 +65,9 @@ machine. This matters for anyone building patched images.
 The homing run is performed by the firmware against the model, not skipped. What the model needs for it:
 
 - X's switch at the high end, Y's at the low end (measured from the directions of the firmware's seek moves).
-- Z has an origin **dog**, a sensor band 3 mm wide (32880 +- 6000 pulses from the bottom), and the firmware's Z
-  reference is open-loop over a fixed distance of 87120 pulses; Z starts that distance above the dog.
+- Z: the sensor (port `0x06` bit 6) follows the profile measured on a real machine (below), and Z starts at its rest
+  position, the top of the model's travel. (Until 2026-10-07 a fitted 3 mm "dog" band 32880 +- 6000 pulses from the
+  bottom, with Z starting 87120 pulses above it, stood in for the unknown sensor.)
 - At power-on X and Y start 10 mm from their switches. The firmware's seek moves are bounded (15-20 mm), so the real
   machine too cannot reference from an arbitrary position.
 
@@ -93,14 +94,30 @@ edges, no hysteresis at that resolution) gives bit 6 against the depth below the
 | 4.00 ... 6.00 | 1 |
 | from 6.25 | 0 |
 
-Once the machine is referenced, the model returns exactly this profile (`peer.Z_PROFILE_SET_MM`, edges halfway between
-the measured points). During the homing run it still uses the fitted 3 mm dog band, because the profile does not yet
-reconcile with the firmware's Z reference sequence: that sequence (`8000:148d` seek up until set, `153b` down until clear,
-`158d` 3 mm up, `162e` up until clear, `168e` down until set, `16ed` a fixed offset of about 1.8 mm up) replayed over
-the measured profile ends about 2 mm away from the measured rest position. Where the firmware puts table Z 0 relative to
-these moves is the open question. A second known model defect belongs to the same work: when the firmware stops a seek
-at the sensor, the model axis still runs off the steps it was owed (14 584 pulses after the first seek), so the model's
-homing positions are not physical; `rebase_to_origin` hides that afterwards.
+The model returns exactly this profile (`peer.Z_PROFILE_SET_MM`, edges halfway between the measured points), during
+the homing run as well. The firmware's Z reference centres on the clear gap:
+
+1. `8000:148d` (coarse): bit 6 set? then nothing to do - the case at the rest position.
+2. `8000:14f2` (fine): down until clear (upper gap edge, 2.125 mm); 3 mm up; the bit is set there, so down until clear
+   again and remember that position (`[0x08a8]`, written only at `8000:1643`); down until set (lower gap edge,
+   3.875 mm); to the centre between both (3.0 mm); declare that table `[0x06cc]` = model record field `[0x06a8]` (3) x
+   200 = 3.0 mm (`8000:16fb`); then drive to table 0.
+
+With the measured profile the rest position comes out at 3.0 - 3.0 = 0.0 mm, the measured rest position. The model's
+cold boot runs exactly this path and ends at the top with bit 6 set.
+
+Two consequences, both *probable* rather than measured: the reference's 3 mm hop goes 0.875 mm above the rest position,
+and the machine boots without `ERR42`, so there is at least that much room above table 0; `G0 Z5` with Z0 3 mm below the
+top (2 mm above table 0) did give `ERR42`, so there is less than 2 mm. The model has no room above table 0 - its top end
+of travel is the rest position - and simply clips the hop, which leaves the firmware's centring unaffected (it re-assigns
+the table at the centre). From a start position below the lower set region the 3 mm hop would land in the gap and the
+firmware takes the other branch; the predicted rest position is then about 0.5 mm lower (not measured; the model always
+starts at the rest position).
+
+Earlier versions of this model started Z far below a fitted dog: the opening blind move (two large strobes, -55 120
+pulses) was then still running when the coarse seek began, and the model axis ran on by the remaining steps after the
+firmware stopped the seek (14 584 pulses). Starting at the rest position removes that path; how the sub CPU executes a
+blind move on the real machine is not known.
 
 The Z axis is not a reliable witness near its end stops: the model stops dead at the end of travel and drops the rest
 of a command, while the firmware keeps believing in its target.

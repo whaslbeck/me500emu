@@ -2,8 +2,11 @@
 
 ## Unreleased
 
-- Z sensor (port `0x06` bit 6) after homing follows a profile measured on a real machine (set 0-2.1 mm and 3.9-6.1 mm
-  below the top position, clear elsewhere); the homing run still uses the fitted dog band. Golden reference unchanged.
+- Z sensor (port `0x06` bit 6) follows a profile measured on a real machine (set 0-2.1 mm and 3.9-6.1 mm below the top
+  position, clear elsewhere), during the homing run too; the fitted dog band is gone and Z starts at its rest position.
+  The firmware's Z reference now runs its measured path (centre of the sensor gap, table 0 = 3 mm above it) and ends
+  at the top with bit 6 set. **Intended behaviour change:** golden reference regenerated (instruction count +69 and
+  RAM hash; path, strobes, bounds, time and LCD unchanged); snapshots rebuild automatically (axis geometry key).
 - Bridge: panel command `z_to Z [zero]`.
 - Docs: port `0x06` and Z travel as measured on a real machine.
 
