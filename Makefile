@@ -1,5 +1,5 @@
 # me500emu - Mimaki ME-500 controller emulator
-#   make            venv + C core + ROM check
+#   make            venv (me500emu installed editable) + C core + ROM check
 #   make test       quick tests (skipped parts need a ROM image, see roms/README.md)
 #   make test-all   includes the slow boot / job tests (a cold boot takes ~1-2 min, then cached)
 #   make ui         browser UI on http://127.0.0.1:8000
@@ -18,10 +18,11 @@ export PYTHONPATH := $(CURDIR)/src
 
 all: venv core info
 
-$(VENV)/.done: requirements.txt requirements-dev.txt
+$(VENV)/.done: requirements.txt requirements-dev.txt pyproject.toml
 	$(PYTHON) -m venv $(VENV)
 	$(VENV)/bin/pip install --upgrade pip
 	$(VENV)/bin/pip install -r requirements-dev.txt
+	$(VENV)/bin/pip install --no-deps -e .
 	touch $@
 
 venv: $(VENV)/.done
@@ -53,4 +54,4 @@ clean:
 	rm -rf .pytest_cache
 
 distclean: clean
-	rm -rf $(VENV)
+	rm -rf $(VENV) src/*.egg-info

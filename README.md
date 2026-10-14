@@ -51,7 +51,8 @@ loop: a feed profile the real machine would abort with a following-error or over
 
 ## Requirements
 
-- Linux x86-64. Tested on Ubuntu 24.04 with Python 3.12. Other POSIX systems may work; they are untested.
+- Linux x86-64. Tested on Ubuntu 26.04 with Python 3.14 and gcc 15 (earlier on Ubuntu 24.04 with Python 3.12).
+  Other POSIX systems may work; they are untested.
 - Python >= 3.8, `gcc` and `make` (the C part of the core is compiled on first use).
 - Python packages, pinned because the timing calibration was done with exactly these versions:
   `unicorn==2.1.4`, `capstone==5.0.9` (plus `pytest` for the tests). `make` installs them into a local venv.
@@ -68,7 +69,7 @@ loop: a feed profile the real machine would abort with a following-error or over
 ```bash
 git clone <this repository> mimaki_me500_emulator
 cd mimaki_me500_emulator
-make                                   # venv, C core, ROM check (prints what it found)
+make                                   # venv (with me500emu installed), C core, ROM check
 
 cp /path/to/your/dump.bin roms/mimaki-me500-c-0mv1.50.bin
 .venv/bin/me500emu info                # should report: stock ROM ... (1.50)
@@ -252,7 +253,8 @@ The short list; details in [docs/hardware-model.md](docs/hardware-model.md) and 
 - **Z timing.** Z records come out roughly 0.3-0.5 s shorter per Z record than measured on the machine (open). The
   Z axis is not a reliable witness near its end stops.
 - **Not modelled:** spindle (and its load), AUTO VIEW hold (the example NVRAM has AUTO VIEW off), the Z surface
-  probe / flatness sensor, mechanics (inertia, backlash, cutting forces).
+  probe / flatness sensor (its encoder reads 0, as on a machine without the sensor), mechanics (inertia, backlash,
+  cutting forces).
 - **19200 baud** loses bytes behind the motion tick - on the machine and in the model alike. Use 9600.
 - **One machine per process.**
 - **CPU instruction set.** Unicorn executes x86; the V33 is an 80186-class CPU. Code that uses instructions the V33

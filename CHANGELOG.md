@@ -13,6 +13,8 @@
 - "Snapshot stale" message goes to stderr (it corrupted the JSON report of `me500emu run`).
 - Bridge: panel command `z_to Z [zero]`.
 - Docs: port `0x06` and Z travel as measured on a real machine.
+- `make` installs the package into the venv (editable), so `.venv/bin/me500emu` from the quick start exists.
+- Tested on Ubuntu 26.04 (Python 3.14, gcc 15): build and full test suite, cold boot included, unchanged.
 
 ## 0.1.0 - initial public release
 
